@@ -1,0 +1,5 @@
+google-genai
+yfinance
+pandas
+plotly
+gradio
