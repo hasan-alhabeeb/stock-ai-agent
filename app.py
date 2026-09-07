@@ -1,10 +1,13 @@
 import google.genai as genai
 import yfinance as yf
 import pandas as pd
-import gradio as gr
+import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime
 import os
+
+# إعداد الصفحة في Streamlit
+st.set_page_config(page_title="Financial AI Agent", layout="wide")
 
 # إعداد API ومكافحة السجلات
 API_KEY = "AQ.Ab8RN6Kixkxp3_kW4g_a9TgAa975oRW4LrVlFu69DNj9f1kAKA"
@@ -93,14 +96,14 @@ def analyze_stock_full(ticker_symbol):
     """
     
     response = client.models.generate_content(
-        model='gemini-3.6-flash',
+        model='gemini-2.5-flash',
         contents=prompt,
     )
     return response.text, current_price, fig
 
 def confirm_decision(user_choice, ticker_symbol, current_price):
     if not ticker_symbol or not current_price:
-        return "الرجاء أدخل رمز السهم والتحليل أولاً.", pd.read_csv(LOG_FILE), LOG_FILE
+        return "الرجاء أدخل رمز السهم والتحليل أولاً."
     
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     status = "Approved" if user_choice == "نعم" else "Rejected"
@@ -114,39 +117,68 @@ def confirm_decision(user_choice, ticker_symbol, current_price):
     }])
     new_log.to_csv(LOG_FILE, mode='a', header=False, index=False)
     
-    updated_df = pd.read_csv(LOG_FILE)
-    msg = f"✓ تم اعتُماد التوصية وحفظها لسهم {ticker_symbol}!" if user_choice == "نعم" else f"✗ تم رفض التوصية لسهم {ticker_symbol}."
-    return msg, updated_df, LOG_FILE
+    msg = f"✓ تم اعتماد التوصية وحفظها لسهم {ticker_symbol}!" if user_choice == "نعم" else f"✗ تم رفض التوصية لسهم {ticker_symbol}."
+    return msg
 
-with gr.Blocks(theme=gr.themes.Soft()) as demo:
-    gr.Markdown("# 🤖 المنظومة المالية الفائقة (Financial AI Professional Agent)")
-    gr.Markdown("تحليل أساسي + تحليل فني + رسم بياني تفاعلي + أخبار + إدارة مخاطر + تصدير السجلات.")
+# --- واجهة المستخدم بلغة Streamlit ---
+st.title("🤖 المنظومة المالية الفائقة (Financial AI Professional Agent)")
+st.write("تحليل أساسي + تحليل فني + رسم بياني تفاعلي + أخبار + إدارة مخاطر + تصدير السجلات.")
+
+# إدخال رمز السهم
+col1, col2 = st.columns([3, 1])
+with col1:
+    ticker_input = st.text_input("رمز السهم (Ticker)", placeholder="مثال: AAPL, NVDA, TSLA")
+with col2:
+    st.write(" ")
+    st.write(" ")
+    analyze_btn = st.button("بدء التحليل الفائق 🚀", type="primary")
+
+# إجراء التحليل عند الضغط على الزر
+if analyze_btn and ticker_input:
+    with st.spinner("جاري جلب البيانات والتحليل بواسطة الذكاء الاصطناعي..."):
+        analysis_text, current_price, fig = analyze_stock_full(ticker_input)
+        st.session_state['analysis_text'] = analysis_text
+        st.session_state['current_price'] = current_price
+        st.session_state['fig'] = fig
+        st.session_state['ticker'] = ticker_input
+
+# عرض النتائج إذا كانت متوفرة
+if 'analysis_text' in st.session_state:
+    col_left, col_right = st.columns(2)
     
-    price_state = gr.State()
-    
-    with gr.Row():
-        ticker_input = gr.Textbox(label="رمز السهم (Ticker)", placeholder="مثال: AAPL, NVDA, TSLA")
-        analyze_btn = gr.Button("بدء التحليل الفائق 🚀", variant="primary")
-    
-    with gr.Row():
-        output_analysis = gr.Textbox(label="تقرير الذكاء الاصطناعي الشامل", lines=15, scale=1)
-        stock_chart = gr.Plot(label="الرسم البياني التفاعلي للسهم", scale=1)
-    
-    gr.Markdown("---")
-    gr.Markdown("### 🛡️ نظام الحماية البشري وتصدير السجلات")
-    
-    with gr.Row():
-        confirm_btn = gr.Button("أوافق على التوصية (نعم)", variant="success")
-        reject_btn = gr.Button("أرفض التوصية (لا)", variant="stop")
+    with col_left:
+        st.subheader("تقرير الذكاء الاصطناعي الشامل")
+        st.write(st.session_state['analysis_text'])
         
-    final_status = gr.Textbox(label="حالة القرار", lines=2)
-    
-    gr.Markdown("### 📜 سجل التوصيات وزر التحميل إلى جهازك")
-    log_table = gr.DataFrame(value=pd.read_csv(LOG_FILE), label="سجل التوصيات المحفوظة")
-    file_download = gr.File(label="تنزيل ملف السجلات CSV إلى جهازك", value=LOG_FILE)
-    
-    analyze_btn.click(fn=analyze_stock_full, inputs=ticker_input, outputs=[output_analysis, price_state, stock_chart])
-    confirm_btn.click(fn=lambda t, p: confirm_decision("نعم", t, p), inputs=[ticker_input, price_state], outputs=[final_status, log_table, file_download])
-    reject_btn.click(fn=lambda t, p: confirm_decision("لا", t, p), inputs=[ticker_input, price_state], outputs=[final_status, log_table, file_download])
+    with col_right:
+        st.subheader("الرسم البياني التفاعلي")
+        if st.session_state['fig']:
+            st.plotly_chart(st.session_state['fig'], use_container_width=True)
 
-demo.launch()
+    st.markdown("---")
+    st.subheader("🛡️ نظام الحماية البشري واتخاذ القرار")
+    
+    col_btn1, col_btn2 = st.columns(2)
+    with col_btn1:
+        if st.button("أوافق على التوصية (نعم)"):
+            res = confirm_decision("نعم", st.session_state['ticker'], st.session_state['current_price'])
+            st.success(res)
+    with col_btn2:
+        if st.button("أرفض التوصية (لا)"):
+            res = confirm_decision("لا", st.session_state['ticker'], st.session_state['current_price'])
+            st.error(res)
+
+st.markdown("---")
+st.subheader("📜 سجل التوصيات المحفوظة")
+
+if os.path.exists(LOG_FILE):
+    df_logs = pd.read_csv(LOG_FILE)
+    st.dataframe(df_logs, use_container_width=True)
+    
+    with open(LOG_FILE, "rb") as file:
+        st.download_button(
+            label="تنزيل ملف السجلات CSV إلى جهازك 📥",
+            data=file,
+            file_name="agent_recommendations_log.csv",
+            mime="text/csv"
+        )
