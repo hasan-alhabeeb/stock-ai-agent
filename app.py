@@ -9,9 +9,14 @@ import os
 # إعداد الصفحة في Streamlit
 st.set_page_config(page_title="Financial AI Agent", layout="wide")
 
-# إعداد API ومكافحة السجلات
-API_KEY = st.secrets["GEMINI_API_KEY"]
-client = genai.Client(api_key=API_KEY)
+# قراءة المفتاح من Streamlit Secrets بأمان
+api_key = st.secrets.get("GEMINI_API_KEY", "")
+
+# تهيئة العميل مع التحقق من وجود المفتاح
+if api_key:
+    client = genai.Client(api_key=api_key)
+else:
+    client = None
 
 LOG_FILE = "agent_recommendations_log.csv"
 
@@ -27,6 +32,9 @@ def calculate_rsi(data, window=14):
     return 100 - (100 / (1 + rs))
 
 def analyze_stock_full(ticker_symbol):
+    if not client:
+        return "خطأ: لم يتم العثور على مفتاح GEMINI_API_KEY في إعدادات Streamlit Secrets.", None, None
+
     if not ticker_symbol:
         return "الرجاء إدخال رمز السهم أولاً.", None, None
     
