@@ -10,8 +10,9 @@ import os
 st.set_page_config(page_title="Financial AI Agent", layout="wide")
 
 # إعداد API ومكافحة السجلات
-API_KEY = "AQ.Ab8RN6LaoE1_xRfhAJYEVEbWb2pE-T6zrHoxwEdV2GP1gWjm-A"
+API_KEY = "AQ.Ab8RN6JUAtT-c_iafE-PypzKO5H79fDRlzts-RUwHfaEFr1ytA"
 client = genai.Client(api_key=API_KEY)
+
 LOG_FILE = "agent_recommendations_log.csv"
 
 if not os.path.exists(LOG_FILE):
