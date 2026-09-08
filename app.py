@@ -95,13 +95,11 @@ def analyze_stock_full(ticker_symbol):
     3. تحديد مستويات المخاطر وتوصية نهائية صريحة (شراء / بيع / احتفاظ).
     """
     
-        response = client.models.generate_content(
+    response = client.models.generate_content(
         model='gemini-2.0-flash',
         contents=prompt
     )
 
-        contents=prompt,
-    )
     return response.text, current_price, fig
 
 def confirm_decision(user_choice, ticker_symbol, current_price):
