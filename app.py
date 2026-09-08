@@ -10,7 +10,7 @@ import os
 st.set_page_config(page_title="Financial AI Agent", layout="wide")
 
 # إعداد API ومكافحة السجلات
-API_KEY = "AQ.Ab8RN6Kixkxp3_kW4g_a9TgAa975oRW4LrVlFu69DNj9f1kAKA"
+API_KEY = "AQ.Ab8RN6LaoE1_xRfhAJYEVEbWb2pE-T6zrHoxwEdV2GP1gWjm-A"
 client = genai.Client(api_key=API_KEY)
 LOG_FILE = "agent_recommendations_log.csv"
 
@@ -96,7 +96,7 @@ def analyze_stock_full(ticker_symbol):
     """
     
     response = client.models.generate_content(
-        model='gemini-2.5-flash',
+        model='gemini-1.5-flash',
         contents=prompt,
     )
     return response.text, current_price, fig
