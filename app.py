@@ -1,4 +1,4 @@
-import google.genai as genai
+import google.generativeai as genai
 import yfinance as yf
 import pandas as pd
 import streamlit as st
@@ -9,14 +9,14 @@ import os
 # إعداد الصفحة في Streamlit
 st.set_page_config(page_title="Financial AI Agent", layout="wide")
 
-# قراءة المفتاح من Streamlit Secrets بأمان
+# قراءة المفتاح وإعداد موديل Gemini
 api_key = st.secrets.get("GEMINI_API_KEY", "")
 
-# تهيئة العميل مع التحقق من وجود المفتاح
 if api_key:
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
+    model = genai.GenerativeModel('gemini-1.5-flash')
 else:
-    client = None
+    model = None
 
 LOG_FILE = "agent_recommendations_log.csv"
 
@@ -32,7 +32,7 @@ def calculate_rsi(data, window=14):
     return 100 - (100 / (1 + rs))
 
 def analyze_stock_full(ticker_symbol):
-    if not client:
+    if not model:
         return "خطأ: لم يتم العثور على مفتاح GEMINI_API_KEY في إعدادات Streamlit Secrets.", None, None
 
     if not ticker_symbol:
@@ -104,12 +104,11 @@ def analyze_stock_full(ticker_symbol):
     3. تحديد مستويات المخاطر وتوصية نهائية صريحة (شراء / بيع / احتفاظ).
     """
     
-    response = client.models.generate_content(
-        model='gemini-2.0-flash',
-        contents=prompt
-    )
-
-    return response.text, current_price, fig
+    try:
+        response = model.generate_content(prompt)
+        return response.text, current_price, fig
+    except Exception as e:
+        return f"حدث خطأ أثناء الاتصال بالذكاء الاصطناعي: {str(e)}", current_price, fig
 
 def confirm_decision(user_choice, ticker_symbol, current_price):
     if not ticker_symbol or not current_price:
